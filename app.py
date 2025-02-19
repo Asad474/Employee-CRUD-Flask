@@ -13,19 +13,20 @@ def home():
 
 @app.route('/employees', methods=['GET'])
 def getEmployee():
-    curr = conn.cursor()
-    curr.execute('select * from employees')
-    rows = curr.fetchall()
+    with conn.cursor() as curr:
+        curr.execute('SELECT * FROM employees')
+        rows = curr.fetchall()
     return jsonify(rows)
 
 @app.route('/employees/<int:id>', methods=['GET'])
 def getEmployeeById(id: int):
-    curr = conn.cursor()
-    curr.execute('select * from employees where id=(%s)', (id,))
-    obj = curr.fetchone()
+    with conn.cursor() as curr:
+        curr.execute('SELECT * FROM employees WHERE id = %s', (id,))
+        obj = curr.fetchone()
+    
     if obj is None:
         return jsonify({'message': 'Employee not found'}), 404
-    
+
     return jsonify(obj)
 
 @app.route('/employees', methods=['POST'])
@@ -34,22 +35,22 @@ def createEmployee():
 
     if not all([new_employee.get('id'), new_employee.get('name'), new_employee.get('email'), new_employee.get('salary'), new_employee.get('position')]):
         return jsonify({'message': 'All input fields are required.'}), 400
-    
+
     new_obj = {
-        'id': new_employee.get('id'),
-        'name': new_employee.get('name'),
-        'email': new_employee.get('email'),
-        'salary': new_employee.get('salary'),
-        'position': new_employee.get('position'),
+        'id': new_employee['id'],
+        'name': new_employee['name'],
+        'email': new_employee['email'],
+        'salary': new_employee['salary'],
+        'position': new_employee['position'],
     }
 
-    curr = conn.cursor()
+    with conn.cursor() as curr:
+        curr.execute(
+            'INSERT INTO employees (id, name, email, salary, position) VALUES (%s, %s, %s, %s, %s)',
+            (new_obj['id'], new_obj['name'], new_obj['email'], new_obj['salary'], new_obj['position'])
+        )
+        conn.commit()
 
-    curr.execute(
-        'insert into employees (id, name, email, salary, position) values (%s, %s, %s, %s, %s)', 
-        (new_obj['id'], new_obj['name'], new_obj['email'], new_obj['salary'], new_obj['position'])
-    )
-    conn.commit()
     return jsonify(new_obj), 201
 
 @app.route('/employees/<int:id>', methods=['PATCH'])
